@@ -10,7 +10,6 @@ The following managers are implemented in this package:
 | ---------------- | ------------------------- |
 | ElasticManager | `addprocs(ElasticManager(...)` |
 
-
 ## Using `ElasticManager` (dynamically adding workers to a cluster)
 
 The `ElasticManager` is useful in scenarios where we want to dynamically add workers to a cluster.

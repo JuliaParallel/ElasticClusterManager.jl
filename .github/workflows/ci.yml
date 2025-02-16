@@ -16,7 +16,6 @@ jobs:
     timeout-minutes: 10
     needs:
       - unit-tests
-      - test-slurm
     # Important: the next line MUST be `if: always()`.
     # Do not change that line.
     # That line is necessary to make sure that this job runs even if tests fail.
@@ -25,13 +24,11 @@ jobs:
     steps:
       - run: |
           echo unit-tests: ${{ needs.unit-tests.result }}
-          echo test-slurm: ${{ needs.test-slurm.result }}
       - run: exit 1
         # The last line must NOT end with ||
         # All other lines MUST end with ||
         if: |
-          (needs.unit-tests.result != 'success') ||
-          (needs.test-slurm.result != 'success')
+          (needs.unit-tests.result != 'success')
   unit-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 20

@@ -4,7 +4,7 @@
     em = ElasticManager(addr=:auto, port=0)
 
     # launch worker
-    run(`sh -c $(ClusterManagers.get_connect_cmd(em))`, wait=false)
+    run(`sh -c $(ElasticClusterManager.get_connect_cmd(em))`, wait=false)
 
     # wait at most TIMEOUT seconds for it to connect
     @test :ok == timedwait(TIMEOUT) do

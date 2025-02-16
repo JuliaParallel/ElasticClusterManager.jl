@@ -1,4 +1,4 @@
-import ClusterManagers
+import ElasticClusterManager
 import Test
 
 import Distributed
@@ -10,11 +10,11 @@ using Distributed: procs, nprocs
 using Distributed: remotecall_fetch, @spawnat
 using Test: @testset, @test, @test_skip
 # ElasticManager:
-using ClusterManagers: ElasticManager
+using ElasticClusterManager: ElasticManager
 # Slurm:
-using ClusterManagers: addprocs_slurm, SlurmManager
+using ElasticClusterManager: addprocs_slurm, SlurmManager
 # SGE:
-using ClusterManagers: addprocs_sge, SGEManager
+using ElasticClusterManager: addprocs_sge, SGEManager
 
 const test_args = lowercase.(strip.(ARGS))
 
@@ -23,7 +23,7 @@ const test_args = lowercase.(strip.(ARGS))
 slurm_is_installed() = !isnothing(Sys.which("sbatch"))
 qsub_is_installed() = !isnothing(Sys.which("qsub"))
 
-@testset "ClusterManagers.jl" begin
+@testset "ElasticClusterManager.jl" begin
     include("elastic.jl")
 
     if slurm_is_installed()

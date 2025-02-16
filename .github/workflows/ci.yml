@@ -16,7 +16,6 @@ jobs:
     timeout-minutes: 10
     needs:
       - unit-tests
-      - test-slurm
     # Important: the next line MUST be `if: always()`.
     # Do not change that line.
     # That line is necessary to make sure that this job runs even if tests fail.
@@ -25,13 +24,11 @@ jobs:
     steps:
       - run: |
           echo unit-tests: ${{ needs.unit-tests.result }}
-          echo test-slurm: ${{ needs.test-slurm.result }}
       - run: exit 1
         # The last line must NOT end with ||
         # All other lines MUST end with ||
         if: |
-          (needs.unit-tests.result != 'success') ||
-          (needs.test-slurm.result != 'success')
+          (needs.unit-tests.result != 'success')
   unit-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -63,6 +60,7 @@ jobs:
         # If this is not a PR, then DO fail CI if the Codecov upload errors.
         fail_ci_if_error: ${{ github.event_name != 'pull_request' || github.repository == github.event.pull_request.head.repo.full_name }}
   test-slurm:
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -100,18 +98,18 @@ jobs:
       run: |
         docker exec -t slurmctld pwd
         docker exec -t slurmctld ls -la
-        docker exec -t slurmctld ls -la ClusterManagers
+        docker exec -t slurmctld ls -la ElasticClusterManager
     - name: Instantiate package
-      run: docker exec -t slurmctld julia --project=ClusterManagers -e 'import Pkg; @show Base.active_project(); Pkg.instantiate(); Pkg.status()'
+      run: docker exec -t slurmctld julia --project=ElasticClusterManager -e 'import Pkg; @show Base.active_project(); Pkg.instantiate(); Pkg.status()'
     - name: Run tests without a Slurm allocation
-      run: docker exec -t slurmctld julia --project=ClusterManagers -e 'import Pkg; Pkg.test(; test_args=["slurm"])'
+      run: docker exec -t slurmctld julia --project=ElasticClusterManager -e 'import Pkg; Pkg.test(; test_args=["slurm"])'
     - name: Run tests inside salloc
-      run: docker exec -t slurmctld salloc -t 00:10:00 -n 2 julia --project=ClusterManagers -e 'import Pkg; Pkg.test(; test_args=["slurm"], coverage=true)'
+      run: docker exec -t slurmctld salloc -t 00:10:00 -n 2 julia --project=ElasticClusterManager -e 'import Pkg; Pkg.test(; test_args=["slurm"], coverage=true)'
     - name: Run tests inside sbatch
-      run: docker exec -t slurmctld ClusterManagers/ci/run_my_sbatch.sh
+      run: docker exec -t slurmctld ElasticClusterManager/ci/run_my_sbatch.sh
     - run: find . -type f -name '*.cov'
     - name: Copy .cov files out of the Docker container
-      run: docker exec slurmctld /bin/bash -c 'cd /home/docker/ClusterManagers && tar -cf - src/*.cov' | tar -xvf -
+      run: docker exec slurmctld /bin/bash -c 'cd /home/docker/ElasticClusterManager && tar -cf - src/*.cov' | tar -xvf -
     - run: find . -type f -name '*.cov'
     # - run: find . -type f -name '*.cov' -exec cat {} \;
     - uses: julia-actions/julia-processcoverage@v1

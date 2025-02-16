@@ -150,7 +150,7 @@ function get_connect_cmd(em::ElasticManager; absolute_exename=true, same_project
     join([
         exename,
         project...,
-        "-e 'using ClusterManagers; ClusterManagers.elastic_worker(\"$cookie\",\"$ip\",$port)'"
+        "-e 'import ElasticClusterManager; ElasticClusterManager.elastic_worker(\"$cookie\",\"$ip\",$port)'"
     ]," ")
 
 end

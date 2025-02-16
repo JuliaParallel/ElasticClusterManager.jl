@@ -1,4 +1,4 @@
-module ClusterManagers
+module ElasticClusterManager
 
 using Distributed
 using Sockets

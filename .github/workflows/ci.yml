@@ -100,18 +100,18 @@ jobs:
       run: |
         docker exec -t slurmctld pwd
         docker exec -t slurmctld ls -la
-        docker exec -t slurmctld ls -la ClusterManagers
+        docker exec -t slurmctld ls -la ElasticClusterManager
     - name: Instantiate package
-      run: docker exec -t slurmctld julia --project=ClusterManagers -e 'import Pkg; @show Base.active_project(); Pkg.instantiate(); Pkg.status()'
+      run: docker exec -t slurmctld julia --project=ElasticClusterManager -e 'import Pkg; @show Base.active_project(); Pkg.instantiate(); Pkg.status()'
     - name: Run tests without a Slurm allocation
-      run: docker exec -t slurmctld julia --project=ClusterManagers -e 'import Pkg; Pkg.test(; test_args=["slurm"])'
+      run: docker exec -t slurmctld julia --project=ElasticClusterManager -e 'import Pkg; Pkg.test(; test_args=["slurm"])'
     - name: Run tests inside salloc
-      run: docker exec -t slurmctld salloc -t 00:10:00 -n 2 julia --project=ClusterManagers -e 'import Pkg; Pkg.test(; test_args=["slurm"], coverage=true)'
+      run: docker exec -t slurmctld salloc -t 00:10:00 -n 2 julia --project=ElasticClusterManager -e 'import Pkg; Pkg.test(; test_args=["slurm"], coverage=true)'
     - name: Run tests inside sbatch
-      run: docker exec -t slurmctld ClusterManagers/ci/run_my_sbatch.sh
+      run: docker exec -t slurmctld ElasticClusterManager/ci/run_my_sbatch.sh
     - run: find . -type f -name '*.cov'
     - name: Copy .cov files out of the Docker container
-      run: docker exec slurmctld /bin/bash -c 'cd /home/docker/ClusterManagers && tar -cf - src/*.cov' | tar -xvf -
+      run: docker exec slurmctld /bin/bash -c 'cd /home/docker/ElasticClusterManager && tar -cf - src/*.cov' | tar -xvf -
     - run: find . -type f -name '*.cov'
     # - run: find . -type f -name '*.cov' -exec cat {} \;
     - uses: julia-actions/julia-processcoverage@v1

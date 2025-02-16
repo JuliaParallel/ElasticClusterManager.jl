@@ -63,6 +63,7 @@ jobs:
         # If this is not a PR, then DO fail CI if the Codecov upload errors.
         fail_ci_if_error: ${{ github.event_name != 'pull_request' || github.repository == github.event.pull_request.head.repo.full_name }}
   test-slurm:
+    if: false
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:

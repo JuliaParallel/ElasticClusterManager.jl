@@ -4,7 +4,7 @@ The ElasticClusterManager.jl package implements the `ElasticManager`.
 
 This code originally lived in the [`ClusterManagers.jl`](https://github.com/JuliaParallel/ClusterManagers.jl) package.
 
-The following managers are implemented in this package (the `ClusterManagers.jl` package):
+The following managers are implemented in this package:
 
 | Manager | Command to add processors |
 | ---------------- | ------------------------- |

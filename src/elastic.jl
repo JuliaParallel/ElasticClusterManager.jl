@@ -6,6 +6,13 @@ export ElasticManager, elastic_worker
 
 const HDR_COOKIE_LEN = Distributed.HDR_COOKIE_LEN
 
+@static if Base.VERSION >= v"1.7-"
+    # Base.errormonitor() is only available in Julia 1.7+
+    my_errormonitor(t) = Base.errormonitor(t)
+else
+    my_errormonitor(t) = nothing
+end
+
 struct ElasticManager <: ClusterManager
     active::Dict{Int, WorkerConfig}        # active workers
     pending::Channel{TCPSocket}          # to be added workers
@@ -35,14 +42,14 @@ struct ElasticManager <: ClusterManager
             while true
                 let s = accept(l_sock)
                     t2 = @async process_worker_conn(lman, s)
-                    errormonitor(t2)
+                    my_errormonitor(t2)
                 end
             end
         end
-        errormonitor(t1)
+        my_errormonitor(t1)
 
         t3 = @async process_pending_connections(lman)
-        errormonitor(t3)
+        my_errormonitor(t3)
 
         lman
     end

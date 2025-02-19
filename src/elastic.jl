@@ -31,15 +31,18 @@ struct ElasticManager <: ClusterManager
 
         lman = new(Dict{Int, WorkerConfig}(), Channel{TCPSocket}(typemax(Int)), Set{Int}(), topology, getsockname(l_sock), printing_kwargs)
 
-        @async begin
+        t1 = @async begin
             while true
                 let s = accept(l_sock)
-                    @async process_worker_conn(lman, s)
+                    t2 = @async process_worker_conn(lman, s)
+                    errormonitor(t2)
                 end
             end
         end
+        errormonitor(t1)
 
-        @async process_pending_connections(lman)
+        t3 = @async process_pending_connections(lman)
+        errormonitor(t3)
 
         lman
     end

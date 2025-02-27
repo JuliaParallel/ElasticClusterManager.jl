@@ -2,8 +2,6 @@
 # Launched workers connect to the master and redirect their STDOUTs to the same
 # Workers can join and leave the cluster on demand.
 
-export ElasticManager, elastic_worker
-
 const HDR_COOKIE_LEN = Distributed.HDR_COOKIE_LEN
 
 @static if Base.VERSION >= v"1.7-"
@@ -21,22 +19,22 @@ struct ElasticManager <: ClusterManager
     sockname
     printing_kwargs
 
-    function ElasticManager(;addr=IPv4("127.0.0.1"), port=9009, cookie=nothing, topology=:all_to_all, printing_kwargs=())
+    function ElasticManager(;addr=Sockets.IPv4("127.0.0.1"), port=9009, cookie=nothing, topology=:all_to_all, printing_kwargs=())
         Distributed.init_multi()
-        cookie !== nothing && cluster_cookie(cookie)
+        cookie !== nothing && Distributed.cluster_cookie(cookie)
 
         # Automatically check for the IP address of the local machine
         if addr == :auto
             try
-                addr = Sockets.getipaddr(IPv4)
+                addr = Sockets.getipaddr(Distributed.IPv4)
             catch
                 error("Failed to automatically get host's IP address. Please specify `addr=` explicitly.")
             end
         end
 
-        l_sock = listen(addr, port)
+        l_sock = Distributed.listen(addr, port)
 
-        lman = new(Dict{Int, WorkerConfig}(), Channel{TCPSocket}(typemax(Int)), Set{Int}(), topology, getsockname(l_sock), printing_kwargs)
+        lman = new(Dict{Int, Distributed.WorkerConfig}(), Channel{Sockets.TCPSocket}(typemax(Int)), Set{Int}(), topology, Sockets.getsockname(l_sock), printing_kwargs)
 
         t1 = @async begin
             while true
@@ -60,9 +58,9 @@ ElasticManager(addr, port) = ElasticManager(;addr=addr, port=port)
 ElasticManager(addr, port, cookie) = ElasticManager(;addr=addr, port=port, cookie=cookie)
 
 
-function process_worker_conn(mgr::ElasticManager, s::TCPSocket)
+function process_worker_conn(mgr::ElasticManager, s::Sockets.TCPSocket)
     # Socket is the worker's STDOUT
-    wc = WorkerConfig()
+    wc = Distributed.WorkerConfig()
     wc.io = s
 
     # Validate cookie
@@ -70,7 +68,7 @@ function process_worker_conn(mgr::ElasticManager, s::TCPSocket)
     if length(cookie) < HDR_COOKIE_LEN
         error("Cookie read failed. Connection closed by peer.")
     end
-    self_cookie = cluster_cookie()
+    self_cookie = Distributed.cluster_cookie()
     for i in 1:HDR_COOKIE_LEN
         if UInt8(self_cookie[i]) != cookie[i]
             println(i, " ", self_cookie[i], " ", cookie[i])
@@ -93,10 +91,10 @@ function process_pending_connections(mgr::ElasticManager)
     end
 end
 
-function launch(mgr::ElasticManager, params::Dict, launched::Array, c::Condition)
+function Distributed.launch(mgr::ElasticManager, params::Dict, launched::Array, c::Condition)
     # The workers have already been started.
     while isready(mgr.pending)
-        wc=WorkerConfig()
+        wc=Distributed.WorkerConfig()
         wc.io = take!(mgr.pending)
         push!(launched, wc)
     end
@@ -104,7 +102,7 @@ function launch(mgr::ElasticManager, params::Dict, launched::Array, c::Condition
     notify(c)
 end
 
-function manage(mgr::ElasticManager, id::Integer, config::WorkerConfig, op::Symbol)
+function Distributed.manage(mgr::ElasticManager, id::Integer, config::Distributed.WorkerConfig, op::Symbol)
     if op == :register
         mgr.active[id] = config
     elseif  op == :deregister
@@ -153,7 +151,7 @@ function get_connect_cmd(em::ElasticManager; absolute_exename=true, same_project
 
     ip = string(em.sockname[1])
     port = convert(Int,em.sockname[2])
-    cookie = cluster_cookie()
+    cookie = Distributed.cluster_cookie()
     exename = absolute_exename ? joinpath(Sys.BINDIR, Base.julia_exename()) : "julia"
     project = same_project ? ("--project=$(Pkg.API.Context().env.project_file)",) : ()
 

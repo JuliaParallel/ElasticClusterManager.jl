@@ -7,7 +7,8 @@
     # launch worker
     old_cmd = ElasticClusterManager.get_connect_cmd(em)
     new_cmd = `$(old_cmd) --coverage=user`
-    run(`sh -c $(new_cmd)`, wait=false)
+    # run(`sh -c $(new_cmd)`) # comment out this line when you are finished debugging
+    run(`sh -c $(new_cmd)`; wait=false) # uncomment this line when you are finished debugging
 
     # wait at most TIMEOUT seconds for it to connect
     @test :ok == timedwait(TIMEOUT) do

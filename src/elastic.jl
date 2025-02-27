@@ -11,9 +11,9 @@ else
     my_errormonitor(t) = nothing
 end
 
-struct ElasticManager <: ClusterManager
-    active::Dict{Int, WorkerConfig}        # active workers
-    pending::Channel{TCPSocket}          # to be added workers
+struct ElasticManager <: Distributed.ClusterManager
+    active::Dict{Int, Distributed.WorkerConfig}        # active workers
+    pending::Channel{Sockets.TCPSocket}          # to be added workers
     terminated::Set{Int}             # terminated worker ids
     topology::Symbol
     sockname
@@ -38,7 +38,7 @@ struct ElasticManager <: ClusterManager
 
         t1 = @async begin
             while true
-                let s = accept(l_sock)
+                let s = Sockets.accept(l_sock)
                     t2 = @async process_worker_conn(lman, s)
                     my_errormonitor(t2)
                 end
@@ -83,7 +83,7 @@ function process_pending_connections(mgr::ElasticManager)
     while true
         wait(mgr.pending)
         try
-            addprocs(mgr; topology=mgr.topology)
+            Distributed.addprocs(mgr; topology=mgr.topology)
         catch e
             showerror(stderr, e)
             Base.show_backtrace(stderr, Base.catch_backtrace())
@@ -144,7 +144,7 @@ function elastic_worker(cookie, addr="127.0.0.1", port=9009; stdout_to_master=tr
     c = connect(addr, port)
     write(c, rpad(cookie, HDR_COOKIE_LEN)[1:HDR_COOKIE_LEN])
     stdout_to_master && redirect_stdout(c)
-    start_worker(c, cookie)
+    Distributed.start_worker(c, cookie)
 end
 
 function get_connect_cmd(em::ElasticManager; absolute_exename=true, same_project=true)

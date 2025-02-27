@@ -147,8 +147,7 @@ function elastic_worker(cookie, addr="127.0.0.1", port=9009; stdout_to_master=tr
     Distributed.start_worker(c, cookie)
 end
 
-function get_connect_cmd(em::ElasticManager; absolute_exename=true, same_project=true)
-
+function get_connect_cmd(em::ElasticManager; absolute_exename=true, same_project=true, exeflags::Tuple=())
     ip = string(em.sockname[1])
     port = convert(Int,em.sockname[2])
     cookie = Distributed.cluster_cookie()
@@ -157,6 +156,7 @@ function get_connect_cmd(em::ElasticManager; absolute_exename=true, same_project
 
     join([
         exename,
+        exeflags...,
         project...,
         "-e 'import ElasticClusterManager; ElasticClusterManager.elastic_worker(\"$cookie\",\"$ip\",$port)'"
     ]," ")

@@ -1,6 +1,6 @@
 name = "ElasticClusterManager"
 uuid = "547eee1f-27c8-4193-bfd6-9e092c8e3331"
-version = "1.0.0"
+version = "2.0.0"
 
 [deps]
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"

@@ -34,7 +34,7 @@ ElasticManager:
   Number of workers to be added  : 0
   Terminated workers : []
   Worker connect command :
-    /home/user/bin/julia --project=/home/user/myproject/Project.toml -e 'using ClusterManagers; ClusterManagers.elastic_worker("4cOSyaYpgSl6BC0C","127.0.1.1",36275)'
+    /home/user/bin/julia --project=/home/user/myproject/Project.toml -e 'using ElasticClusterManager; ElasticClusterManager.elastic_worker("4cOSyaYpgSl6BC0C","127.0.1.1",36275)'
 ```
 
 By default, the printed command uses the absolute path to the current Julia executable and activates the same project as the current session. You can change either of these defaults by passing `printing_kwargs=(absolute_exename=false, same_project=false))` to the first form of the `ElasticManager` constructor.

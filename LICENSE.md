@@ -1,7 +1,7 @@
-ClusterManagers.jl is licensed under the MIT License:
+ElasticClusterManager.jl is licensed under the MIT License:
 
-> Copyright (c) 2013: Amit Murthy
-> and other contributors: https://github.com/amitmurthy/ClusterManagers.jl/contributors
+> Copyright (c) 2013: Amit Murthy and contributors
+> and other contributors: https://github.com/JuliaParallel/ElasticClusterManager.jl
 >
 > Permission is hereby granted, free of charge, to any person obtaining
 > a copy of this software and associated documentation files (the

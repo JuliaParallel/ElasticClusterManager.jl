@@ -148,22 +148,33 @@ function Base.show(io::IO, mgr::ElasticManager)
     print(io, String(take!(iob)))
 end
 
-# Does not return. If executing from a REPL try
-# @async elastic_worker(.....)
-# addr, port that a ElasticManager on the master processes is listening on.
+"""
+    ElasticClusterManager.elastic_worker(
+        cookie::AbstractString, addr::AbstractString="127.0.0.1", port::Integer = 9009;
+        forward_stdout::Bool = true,
+        Base.@nospecialize(env::AbstractVector = [],)
+    )
+
+Start an elastic worker process that connects to the main Julia process
+at IP-address `addr` and port `port`.
+
+Does not return.
+"""
 function elastic_worker(
     cookie::AbstractString, addr::AbstractString="127.0.0.1", port::Integer = 9009;
-    stdout_to_master::Bool = true,
+    forward_stdout::Bool = true,
     Base.@nospecialize(env::AbstractVector = [],)
 )
-    @debug "ElasticManager.elastic_worker(cookie, $addr, $port; stdout_to_master=$stdout_to_master, env=$env)"
+    @debug "ElasticManager.elastic_worker(cookie, $addr, $port; forward_stdout=$forward_stdout, env=$env)"
     for (k, v) in env
         ENV[k] = v
     end
 
     c = connect(addr, port)
     write(c, rpad(cookie, HDR_COOKIE_LEN)[1:HDR_COOKIE_LEN])
-    stdout_to_master && redirect_stdout(c)
+    if forward_stdout
+        redirect_stdout(c)
+    end
     Distributed.start_worker(c, cookie)
 end
 

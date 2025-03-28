@@ -17,16 +17,20 @@ struct ElasticManager <: Distributed.ClusterManager
     terminated::Set{Int}             # terminated worker ids
     topology::Symbol
     sockname
+    manage_callback
     printing_kwargs
 
-    function ElasticManager(;addr=Sockets.IPv4("127.0.0.1"), port=9009, cookie=nothing, topology=:all_to_all, printing_kwargs=())
+    function ElasticManager(;
+        addr=IPv4("127.0.0.1"), port=9009, cookie=nothing,
+        topology=:all_to_all, manage_callback=elastic_no_op_callback, printing_kwargs=()
+    )
         Distributed.init_multi()
         cookie !== nothing && Distributed.cluster_cookie(cookie)
 
         # Automatically check for the IP address of the local machine
         if addr == :auto
             try
-                addr = Sockets.getipaddr(Distributed.IPv4)
+                addr = Sockets.getipaddr(Sockets.IPv4)
             catch
                 error("Failed to automatically get host's IP address. Please specify `addr=` explicitly.")
             end
@@ -34,7 +38,7 @@ struct ElasticManager <: Distributed.ClusterManager
 
         l_sock = Distributed.listen(addr, port)
 
-        lman = new(Dict{Int, Distributed.WorkerConfig}(), Channel{Sockets.TCPSocket}(typemax(Int)), Set{Int}(), topology, Sockets.getsockname(l_sock), printing_kwargs)
+        lman = new(Dict{Int, Distributed.WorkerConfig}(), Channel{Sockets.TCPSocket}(typemax(Int)), Set{Int}(), topology, Sockets.getsockname(l_sock), manage_callback, printing_kwargs)
 
         t1 = @async begin
             while true
@@ -57,8 +61,10 @@ ElasticManager(port) = ElasticManager(;port=port)
 ElasticManager(addr, port) = ElasticManager(;addr=addr, port=port)
 ElasticManager(addr, port, cookie) = ElasticManager(;addr=addr, port=port, cookie=cookie)
 
+elastic_no_op_callback(::ElasticManager, ::Integer, ::Symbol) = nothing
 
 function process_worker_conn(mgr::ElasticManager, s::Sockets.TCPSocket)
+    @debug "ElasticManager got new worker connection"
     # Socket is the worker's STDOUT
     wc = Distributed.WorkerConfig()
     wc.io = s
@@ -94,6 +100,7 @@ end
 function Distributed.launch(mgr::ElasticManager, params::Dict, launched::Array, c::Condition)
     # The workers have already been started.
     while isready(mgr.pending)
+        @debug "ElasticManager.launch new worker"
         wc=Distributed.WorkerConfig()
         wc.io = take!(mgr.pending)
         push!(launched, wc)
@@ -104,8 +111,12 @@ end
 
 function Distributed.manage(mgr::ElasticManager, id::Integer, config::Distributed.WorkerConfig, op::Symbol)
     if op == :register
+        @debug "ElasticManager registering process id $id"
         mgr.active[id] = config
+        mgr.manage_callback(mgr, id, op)
     elseif  op == :deregister
+        @debug "ElasticManager deregistering process id $id"
+        mgr.manage_callback(mgr, id, op)
         delete!(mgr.active, id)
         push!(mgr.terminated, id)
     end
@@ -138,9 +149,18 @@ function Base.show(io::IO, mgr::ElasticManager)
 end
 
 # Does not return. If executing from a REPL try
-# @async connect_to_cluster(.....)
+# @async elastic_worker(.....)
 # addr, port that a ElasticManager on the master processes is listening on.
-function elastic_worker(cookie, addr="127.0.0.1", port=9009; stdout_to_master=true)
+function elastic_worker(
+    cookie::AbstractString, addr::AbstractString="127.0.0.1", port::Integer = 9009;
+    stdout_to_master::Bool = true,
+    Base.@nospecialize(env::AbstractVector = [],)
+)
+    @debug "ElasticManager.elastic_worker(cookie, $addr, $port; stdout_to_master=$stdout_to_master, env=$env)"
+    for (k, v) in env
+        ENV[k] = v
+    end
+
     c = connect(addr, port)
     write(c, rpad(cookie, HDR_COOKIE_LEN)[1:HDR_COOKIE_LEN])
     stdout_to_master && redirect_stdout(c)

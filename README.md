@@ -19,7 +19,7 @@ port and publish their own host/port information for other workers to connect to
 On the master, you need to instantiate an instance of `ElasticManager`. The constructors defined are:
 
 ```julia
-ElasticManager(;addr=IPv4("127.0.0.1"), port=9009, cookie=nothing, topology=:all_to_all, printing_kwargs=())
+ElasticManager(;addr=IPv4("127.0.0.1"), port=9009, cookie=nothing, topology=:all_to_all)
 ElasticManager(port) = ElasticManager(;port=port)
 ElasticManager(addr, port) = ElasticManager(;addr=addr, port=port)
 ElasticManager(addr, port, cookie) = ElasticManager(;addr=addr, port=port, cookie=cookie)
@@ -37,6 +37,17 @@ ElasticManager:
     /home/user/bin/julia --project=/home/user/myproject/Project.toml -e 'using ElasticClusterManager; ElasticClusterManager.elastic_worker("4cOSyaYpgSl6BC0C","127.0.1.1",36275)'
 ```
 
-By default, the printed command uses the absolute path to the current Julia executable and activates the same project as the current session. You can change either of these defaults by passing `printing_kwargs=(absolute_exename=false, same_project=false))` to the first form of the `ElasticManager` constructor.
+Use `ElasticClusterManager.get_connect_cmd(em; kwargs...)` to generate a suitable system command to start up a
+worker process, e.g.:
 
-Once workers are connected, you can print the `em` object again to see them added to the list of active workers.
+```julia
+print(ElasticClusterManager.get_connect_cmd(em; absolute_exename=false, same_project=false))
+```
+
+```
+/home/user/bin/julia --project=/home/user/myproject/Project.toml -e 'using ElasticClusterManager; ElasticClusterManager.elastic_worker("4cOSyaYpgSl6BC0C","127.0.1.1",36275)'
+```
+
+By default, the printed command uses the absolute path to the current Julia executable and activates the same project as the current session.
+
+Once workers have connected, `show(em)` should show them added to the list of active workers.

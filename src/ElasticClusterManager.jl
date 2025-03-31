@@ -11,7 +11,6 @@ import Pkg
 # Bring some names into scope, just for convenience:
 using Distributed: launch, manage, kill, init_worker, connect
 
-export launch, manage, kill, init_worker, connect
 export ElasticManager, elastic_worker
 
 # This seems to be currently unused:

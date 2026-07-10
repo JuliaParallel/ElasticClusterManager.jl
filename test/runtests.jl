@@ -1,6 +1,7 @@
 import ElasticClusterManager
 import Test
 
+import Aqua
 import Distributed
 import Random
 import Sockets
@@ -17,5 +18,6 @@ using Test: @testset, @test, @test_skip, @test_throws
 using ElasticClusterManager: ElasticManager
 
 @testset "ElasticClusterManager.jl" begin
+    Aqua.test_ambiguities(ElasticClusterManager)
     include("elastic.jl")
 end # @testset

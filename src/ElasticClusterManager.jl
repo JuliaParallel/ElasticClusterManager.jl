@@ -13,15 +13,6 @@ using Distributed: launch, manage, kill, init_worker, connect
 
 export ElasticManager, elastic_worker
 
-# This seems to be currently unused:
-# function worker_cookie()
-#   Distributed.init_multi()
-#   return Distributed.cluster_cookie()
-# end
-
-# This seems to be currently unused:
-# worker_arg() = `--worker=$(worker_cookie())`
-
 include("elastic.jl")
 
 end

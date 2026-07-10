@@ -1,8 +1,10 @@
 import ElasticClusterManager
 import Test
 
+import Aqua
 import Distributed
 import Random
+import Sockets
 
 # Bring some names into scope, just for convenience:
 using Distributed: addprocs, rmprocs
@@ -10,11 +12,12 @@ using Distributed: workers, nworkers
 using Distributed: procs, nprocs
 using Distributed: remotecall_fetch, @spawnat
 using Distributed: @ip_str
-using Test: @testset, @test, @test_skip
+using Test: @testset, @test, @test_skip, @test_throws
 
 # ElasticManager:
 using ElasticClusterManager: ElasticManager
 
 @testset "ElasticClusterManager.jl" begin
+    Aqua.test_ambiguities(ElasticClusterManager)
     include("elastic.jl")
 end # @testset

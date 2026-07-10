@@ -110,11 +110,37 @@
         @test !occursin("--project", cmd)
     end
 
+    @testset "close" begin
+        em2 = ElasticManager(; port=0)
+        run(ElasticClusterManager.worker_start_command(em2; exeflags=`--code-coverage=user --startup-file=no`); wait=false)
+        @test :ok == timedwait(TIMEOUT) do
+            length(em2.active) == 1
+        end
+        @test isopen(em2)
+
+        @test close(em2) === nothing
+
+        @test !isopen(em2)
+        @test :ok == timedwait(TIMEOUT) do
+            isempty(em2.active)
+        end
+        @test workers() == [1]
+        @test_throws Base.IOError Sockets.connect(em2.sockname...)
+        @test close(em2) === nothing
+    end
+
     @testset "Other constructors for ElasticManager()" begin
-        @test ElasticManager(9001) isa ElasticManager
-        @test ElasticManager(ip"127.0.0.1", 9002) isa ElasticManager
+        em_dep1 = ElasticManager(9001)
+        @test em_dep1 isa ElasticManager
+        em_dep2 = ElasticManager(ip"127.0.0.1", 9002)
+        @test em_dep2 isa ElasticManager
         @test Distributed.HDR_COOKIE_LEN isa Real
         @test Distributed.HDR_COOKIE_LEN >= 16
-        @test ElasticManager(ip"127.0.0.1", 9003, Random.randstring(Distributed.HDR_COOKIE_LEN)) isa ElasticManager
+        em_dep3 = ElasticManager(ip"127.0.0.1", 9003, Random.randstring(Distributed.HDR_COOKIE_LEN))
+        @test em_dep3 isa ElasticManager
+        foreach(close, (em_dep1, em_dep2, em_dep3))
     end
+
+    close(em)
+    @test !isopen(em)
 end

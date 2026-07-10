@@ -11,7 +11,7 @@ using Distributed: workers, nworkers
 using Distributed: procs, nprocs
 using Distributed: remotecall_fetch, @spawnat
 using Distributed: @ip_str
-using Test: @testset, @test, @test_skip
+using Test: @testset, @test, @test_skip, @test_throws
 
 # ElasticManager:
 using ElasticClusterManager: ElasticManager

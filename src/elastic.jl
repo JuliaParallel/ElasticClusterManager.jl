@@ -45,6 +45,9 @@ my_manage_callback(mgr::ElasticManager, id::Integer, :deregister)
 
 This can be used to automatically add workers to a `Distributed.WorkerPool`,
 and so on.
+
+Use `close(em)` to shut the manager down and remove all of its workers
+from the cluster.
 """
 struct ElasticManager{F} <: Distributed.ClusterManager
     active::Dict{Int, Distributed.WorkerConfig}        # active workers
@@ -79,11 +82,15 @@ struct ElasticManager{F} <: Distributed.ClusterManager
         )
 
         t1 = @async begin
-            while true
-                let s = Sockets.accept(l_sock)
-                    t2 = @async process_worker_conn(lman, s)
-                    my_errormonitor(t2)
+            while isopen(l_sock)
+                s = try
+                    Sockets.accept(l_sock)
+                catch
+                    isopen(l_sock) && rethrow()
+                    break
                 end
+                t2 = @async process_worker_conn(lman, s)
+                my_errormonitor(t2)
             end
         end
         my_errormonitor(t1)
@@ -117,12 +124,22 @@ function process_worker_conn(mgr::ElasticManager, s::Sockets.TCPSocket)
         end
     end
 
-    put!(mgr.pending, s)
+    try
+        put!(mgr.pending, s)
+    catch err
+        close(s)
+        err isa InvalidStateException || rethrow()
+    end
 end
 
 function process_pending_connections(mgr::ElasticManager)
     while true
-        wait(mgr.pending)
+        try
+            wait(mgr.pending)
+        catch err
+            err isa InvalidStateException && !isopen(mgr.pending) && break
+            rethrow()
+        end
         try
             Distributed.addprocs(mgr; topology=mgr.topology)
         catch e
@@ -130,6 +147,31 @@ function process_pending_connections(mgr::ElasticManager)
             Base.show_backtrace(stderr, Base.catch_backtrace())
         end
     end
+end
+
+"""
+    Base.isopen(mgr::ElasticManager)
+
+Return `true` if `mgr` still accepts new worker connections.
+"""
+Base.isopen(mgr::ElasticManager) = isopen(mgr.l_sock)
+
+"""
+    Base.close(mgr::ElasticManager)
+
+Shut down `mgr`: stop accepting new worker connections and remove all of
+its active workers from the cluster.
+
+Idempotent, closing an already closed manager has no effect.
+"""
+function Base.close(mgr::ElasticManager)
+    close(mgr.l_sock)
+    close(mgr.pending)
+    while isready(mgr.pending)
+        close(take!(mgr.pending))
+    end
+    Distributed.rmprocs(collect(keys(mgr.active)))
+    return nothing
 end
 
 function Distributed.launch(mgr::ElasticManager, params::Dict, launched::Array, c::Condition)

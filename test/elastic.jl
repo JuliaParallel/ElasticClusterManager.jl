@@ -8,9 +8,8 @@
     @test em isa ElasticManager
 
     # launch worker
-    exeflags = ("--code-coverage=user", "--startup-file=no")
-    connect_cmd = ElasticClusterManager.get_connect_cmd(em; exeflags=exeflags)
-    run(`sh -c $connect_cmd`; wait=false)
+    worker_cmd = ElasticClusterManager.worker_start_command(em; exeflags=`--code-coverage=user --startup-file=no`)
+    run(worker_cmd; wait=false)
 
     # wait at most TIMEOUT seconds for it to connect
     @test :ok == timedwait(TIMEOUT) do
@@ -83,12 +82,27 @@
         wait(rmprocs(workers()))
     end
 
+    @testset "worker_start_command" begin
+        cmd = ElasticClusterManager.worker_start_command(em)
+        @test cmd isa Cmd
+        @test cmd.exec[1] == joinpath(Sys.BINDIR, Base.julia_exename())
+        @test any(startswith.(cmd.exec, "--project="))
+        @test cmd.exec[end-1] == "-e"
+        @test occursin("elastic_worker(\"$(Distributed.cluster_cookie())\",\"$(em.sockname[1])\",$(Int(em.sockname[2])))", cmd.exec[end])
+
+        cmd = ElasticClusterManager.worker_start_command(em; absolute_exename=false, same_project=false, exeflags=`--threads=2`)
+        @test cmd.exec[1] == "julia"
+        @test "--threads=2" in cmd.exec
+        @test !any(startswith.(cmd.exec, "--project="))
+    end
+
     @testset "get_connect_cmd" begin
         cmd = ElasticClusterManager.get_connect_cmd(em)
         @test occursin(joinpath(Sys.BINDIR, Base.julia_exename()), cmd)
         @test occursin("--project=", cmd)
         @test occursin(Distributed.cluster_cookie(), cmd)
         @test occursin(string(Int(em.sockname[2])), cmd)
+        @test occursin("-e 'import ElasticClusterManager", cmd)
 
         cmd = ElasticClusterManager.get_connect_cmd(em; absolute_exename=false, same_project=false, exeflags=("--threads=2",))
         @test startswith(cmd, "julia ")

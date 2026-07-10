@@ -214,26 +214,48 @@ function elastic_worker(
 end
 
 """
-    ElasticClusterManager.get_connect_cmd(em::ElasticManager; absolute_exename=true, same_project=true, exeflags::Tuple=())
+    ElasticClusterManager.worker_start_command(
+        em::ElasticManager;
+        absolute_exename::Bool = true, same_project::Bool = true, exeflags::Cmd = ``
+    )::Cmd
 
-Return a suitable system command that starts a Julia process with an elastic
-worker that will try to connect to the primary Julia process running the
+Return a command that starts a Julia process with an elastic worker that
+will try to connect to the primary Julia process running the
 [`ElasticManager`](@ref) instance `em`.
 
-The output of `get_connect_cmd` should be taken as a baseline. Complex use
-cases (on some batch systems, etc.) may require a more involved command.
+Use `absolute_exename = false` to use `julia` instead of the full path of
+the current Julia executable and `same_project = false` to not activate the
+current project. Additional Julia command-line flags can be passed via
+`exeflags`.
+
+The returned command should be taken as a baseline. Complex use cases (on
+some batch systems, etc.) may require a more involved command.
 """
-function get_connect_cmd(em::ElasticManager; absolute_exename=true, same_project=true, exeflags::Tuple=())
+function worker_start_command(
+    em::ElasticManager;
+    absolute_exename::Bool = true, same_project::Bool = true, exeflags::Cmd = ``
+)
     ip = string(em.sockname[1])
-    port = convert(Int,em.sockname[2])
+    port = convert(Int, em.sockname[2])
     cookie = Distributed.cluster_cookie()
     exename = absolute_exename ? joinpath(Sys.BINDIR, Base.julia_exename()) : "julia"
-    project = same_project ? ("--project=$(Pkg.API.Context().env.project_file)",) : ()
+    project = same_project ? `--project=$(Pkg.API.Context().env.project_file)` : ``
+    code = "import ElasticClusterManager; ElasticClusterManager.elastic_worker(\"$cookie\",\"$ip\",$port)"
+    return `$exename $exeflags $project -e $code`
+end
 
-    join([
-        exename,
-        exeflags...,
-        project...,
-        "-e 'import ElasticClusterManager; ElasticClusterManager.elastic_worker(\"$cookie\",\"$ip\",$port)'"
-    ]," ")
+"""
+    ElasticClusterManager.get_connect_cmd(em::ElasticManager; absolute_exename=true, same_project=true, exeflags::Tuple=())
+
+Like [`worker_start_command`](@ref), but returns the command as a
+shell-escaped string, suitable for embedding in job scripts for batch
+systems and similar.
+"""
+function get_connect_cmd(em::ElasticManager; absolute_exename=true, same_project=true, exeflags::Tuple=())
+    cmd = worker_start_command(
+        em;
+        absolute_exename = absolute_exename, same_project = same_project,
+        exeflags = Cmd(String[exeflags...])
+    )
+    return Base.shell_escape_posixly(cmd.exec...)
 end

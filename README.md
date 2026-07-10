@@ -32,8 +32,15 @@ ElasticManager:
 
 Workers are then started as separate Julia processes that call
 `ElasticClusterManager.elastic_worker` to connect to the master.
-Use `ElasticClusterManager.get_connect_cmd(em; kwargs...)` to generate a suitable system command to start up a
+Use `ElasticClusterManager.worker_start_command(em; kwargs...)` to generate a suitable command to start up a
 worker process, e.g.:
+
+```julia
+run(ElasticClusterManager.worker_start_command(em); wait=false)
+```
+
+`ElasticClusterManager.get_connect_cmd(em; kwargs...)` returns the same command as a shell-escaped string,
+suitable for embedding in job scripts for batch systems and similar:
 
 ```julia
 print(ElasticClusterManager.get_connect_cmd(em))

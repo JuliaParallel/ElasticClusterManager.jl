@@ -22,7 +22,7 @@
 
     @testset "show with active worker" begin
         lines = strip.(split(strip(sprint(show, em)), '\n'))
-        @test lines[2] == "Active workers : [ $wid]"
+        @test lines[2] == "Active workers : [$wid]"
     end
 
     wait(rmprocs(workers()))
@@ -40,8 +40,8 @@
         lines = strip.(split(strip(str), '\n'))
         @test lines[1] == "ElasticManager:"
         @test lines[2] == "Active workers : []"
-        @test lines[3] == "Number of workers to be added  : 0"
-        @test lines[4] == "Terminated workers : [ $wid]"
+        @test lines[3] == "Number of workers to be added : 0"
+        @test lines[4] == "Terminated workers : [$wid]"
     end
 
     @testset "cookie validation" begin

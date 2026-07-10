@@ -200,26 +200,10 @@ function Distributed.manage(mgr::ElasticManager, id::Integer, config::Distribute
 end
 
 function Base.show(io::IO, mgr::ElasticManager)
-    iob = IOBuffer()
-
-    println(iob, "ElasticManager:")
-    print(iob, "  Active workers : [ ")
-    for id in sort(collect(keys(mgr.active)))
-        print(iob, id, ",")
-    end
-    seek(iob, position(iob)-1)
-    println(iob, "]")
-
-    println(iob, "  Number of workers to be added  : ", Base.n_avail(mgr.pending))
-
-    print(iob, "  Terminated workers : [ ")
-    for id in sort(collect(mgr.terminated))
-        print(iob, id, ",")
-    end
-    seek(iob, position(iob)-1)
-    println(iob, "]")
-
-    print(io, String(take!(iob)))
+    println(io, "ElasticManager:")
+    println(io, "  Active workers : [", join(sort!(collect(keys(mgr.active))), ", "), "]")
+    println(io, "  Number of workers to be added : ", Base.n_avail(mgr.pending))
+    println(io, "  Terminated workers : [", join(sort!(collect(mgr.terminated)), ", "), "]")
 end
 
 """

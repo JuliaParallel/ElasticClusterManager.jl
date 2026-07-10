@@ -26,7 +26,7 @@ You can set `addr=:auto` to automatically use the host's private IP address on t
 julia> em = ElasticManager(addr=:auto, port=0)
 ElasticManager:
   Active workers : []
-  Number of workers to be added  : 0
+  Number of workers to be added : 0
   Terminated workers : []
 ```
 

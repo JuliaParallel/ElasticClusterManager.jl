@@ -99,19 +99,16 @@ elastic_no_op_callback(::ElasticManager, ::Integer, ::Symbol) = nothing
 
 function process_worker_conn(mgr::ElasticManager, s::Sockets.TCPSocket)
     @debug "ElasticManager got new worker connection"
-    # Socket is the worker's STDOUT
-    wc = Distributed.WorkerConfig()
-    wc.io = s
-
     # Validate cookie
     cookie = read(s, HDR_COOKIE_LEN)
     if length(cookie) < HDR_COOKIE_LEN
+        close(s)
         error("Cookie read failed. Connection closed by peer.")
     end
     self_cookie = Distributed.cluster_cookie()
     for i in 1:HDR_COOKIE_LEN
         if UInt8(self_cookie[i]) != cookie[i]
-            println(i, " ", self_cookie[i], " ", cookie[i])
+            close(s)
             error("Invalid cookie sent by remote worker.")
         end
     end

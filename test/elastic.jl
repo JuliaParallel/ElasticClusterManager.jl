@@ -127,6 +127,40 @@
         @test workers() == [1]
         @test_throws Base.IOError Sockets.connect(em2.sockname...)
         @test close(em2) === nothing
+
+        # A worker connection that loses the race against close must get closed:
+        srv = Sockets.listen(ip"127.0.0.1", 0)
+        late_client = Sockets.connect(Sockets.getsockname(srv)...)
+        write(late_client, Distributed.cluster_cookie())
+        ElasticClusterManager.process_worker_conn(em2, Sockets.accept(srv))
+        @test isempty(read(late_client))
+        close(srv)
+    end
+
+    @testset "close with pending worker connections" begin
+        em3 = ElasticManager(; port=0)
+
+        # Stall connection processing with a worker that never completes its handshake:
+        stalled_srv = Sockets.listen(ip"127.0.0.1", 0)
+        stalled_client = Sockets.connect(Sockets.getsockname(stalled_srv)...)
+        stalled_worker = Sockets.accept(stalled_srv)
+        put!(em3.pending, stalled_worker)
+        @test :ok == timedwait(() -> Base.n_avail(em3.pending) == 0, TIMEOUT)
+
+        queued_srv = Sockets.listen(ip"127.0.0.1", 0)
+        queued_client = Sockets.connect(Sockets.getsockname(queued_srv)...)
+        put!(em3.pending, Sockets.accept(queued_srv))
+
+        close(em3)
+        @test !isopen(em3)
+        @test isempty(read(queued_client))
+
+        # Unblock the stalled worker addition with an unusable connect target,
+        # it will fail quickly and log an error:
+        write(stalled_client, "julia_worker:1#127.0.0.1\n")
+        close(stalled_client)
+        close(stalled_srv)
+        close(queued_srv)
     end
 
     @testset "Other constructors for ElasticManager()" begin

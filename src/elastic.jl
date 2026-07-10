@@ -160,7 +160,8 @@ Base.isopen(mgr::ElasticManager) = isopen(mgr.l_sock)
     Base.close(mgr::ElasticManager)
 
 Shut down `mgr`: stop accepting new worker connections and remove all of
-its active workers from the cluster.
+its active workers from the cluster. Blocks until the workers have been
+removed.
 
 Idempotent, closing an already closed manager has no effect.
 """
@@ -170,7 +171,7 @@ function Base.close(mgr::ElasticManager)
     while isready(mgr.pending)
         close(take!(mgr.pending))
     end
-    Distributed.rmprocs(collect(keys(mgr.active)))
+    isempty(mgr.active) || Distributed.rmprocs(collect(keys(mgr.active)))
     return nothing
 end
 

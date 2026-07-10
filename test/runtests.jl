@@ -3,6 +3,7 @@ import Test
 
 import Distributed
 import Random
+import Sockets
 
 # Bring some names into scope, just for convenience:
 using Distributed: addprocs, rmprocs

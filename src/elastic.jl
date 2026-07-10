@@ -46,13 +46,14 @@ my_manage_callback(mgr::ElasticManager, id::Integer, :deregister)
 This can be used to automatically add workers to a `Distributed.WorkerPool`,
 and so on.
 """
-struct ElasticManager <: Distributed.ClusterManager
+struct ElasticManager{F} <: Distributed.ClusterManager
     active::Dict{Int, Distributed.WorkerConfig}        # active workers
     pending::Channel{Sockets.TCPSocket}          # to be added workers
     terminated::Set{Int}             # terminated worker ids
     topology::Symbol
-    sockname
-    manage_callback
+    sockname::Tuple{Sockets.IPAddr, UInt16}
+    manage_callback::F
+    l_sock::Sockets.TCPServer
 
     function ElasticManager(;
         addr=Sockets.IPv4("127.0.0.1"), port=9009, cookie=nothing,
@@ -70,9 +71,12 @@ struct ElasticManager <: Distributed.ClusterManager
             end
         end
 
-        l_sock = Distributed.listen(addr, port)
+        l_sock = Sockets.listen(addr, port)
 
-        lman = new(Dict{Int, Distributed.WorkerConfig}(), Channel{Sockets.TCPSocket}(typemax(Int)), Set{Int}(), topology, Sockets.getsockname(l_sock), manage_callback)
+        lman = new{typeof(manage_callback)}(
+            Dict{Int, Distributed.WorkerConfig}(), Channel{Sockets.TCPSocket}(typemax(Int)),
+            Set{Int}(), topology, Sockets.getsockname(l_sock), manage_callback, l_sock
+        )
 
         t1 = @async begin
             while true
